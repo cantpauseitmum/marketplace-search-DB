@@ -3,7 +3,10 @@ Unit tests for DatabaseManager
 """
 import unittest
 import os
-from db_manager import DatabaseManager
+try:
+    from db_manager import DatabaseManager
+except ImportError:
+    from database.db_manager import DatabaseManager
 
 class TestDatabaseManager(unittest.TestCase):
     def setUp(self):
