@@ -1,0 +1,5 @@
+# MarketplaceSearch Database Module
+# Pure standard library SQLite3 (no external dependencies required)
+# Optional dependencies for PostgreSQL:
+# psycopg2-binary>=2.9.9
+# sqlalchemy>=2.0.28

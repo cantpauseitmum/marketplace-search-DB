@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "marketplace-search-db"
+version = "1.0.0"
+description = "Database schema and manager for MarketplaceSearch"
+authors = [{ name = "Hubert Felicjaniak" }]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.10"

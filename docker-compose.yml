@@ -1,0 +1,12 @@
+services:
+  database:
+    build: .
+    container_name: marketplace_search_db
+    volumes:
+      - db_data:/app/data
+    environment:
+      - DB_PATH=/app/data/marketplace.db
+    command: ["python3", "init_db.py", "--seed", "--stats"]
+
+volumes:
+  db_data:
