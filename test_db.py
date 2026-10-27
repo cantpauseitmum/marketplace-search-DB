@@ -115,5 +115,48 @@ class TestDatabaseManager(unittest.TestCase):
         self.assertTrue(deleted)
         self.assertIsNone(self.db.get_watched_search(watched_id))
 
+    def test_sync_watched_offers_removes_expired_and_protects_bookmarked(self):
+        item = self.db.add_watched_search(query_text="Rower Gravel", title="Rower")
+        w_id = item["id"]
+
+        # 1. Pierwszy przebieg: znaleziono 3 oferty (A, B, C)
+        offer_a = {"source": "OLX", "url": "https://olx.pl/a", "title": "Rower A", "price": 2000}
+        offer_b = {"source": "OLX", "url": "https://olx.pl/b", "title": "Rower B (wygasnie)", "price": 2500}
+        offer_c = {"source": "Allegro", "url": "https://allegro.pl/c", "title": "Rower C (polubiony, wygasnie)", "price": 3000}
+
+        self.db.sync_watched_offers(w_id, [offer_a, offer_b, offer_c])
+        res = self.db.get_offers_for_watched_search(w_id)
+        self.assertEqual(res["total"], 3)
+
+        # Użytkownik polubił ofertę C (gwiazdka ⭐)
+        c_db = [o for o in res["items"] if o["url"] == "https://allegro.pl/c"][0]
+        self.db.toggle_bookmark(c_db["id"])
+
+        # 2. Drugi przebieg (np. po 1h):
+        # Oferta B i C zniknęły z serwisu (sprzedane/usunięte). Pojawia się tylko oferta A i nowa oferta D.
+        offer_d = {"source": "OLX", "url": "https://olx.pl/d", "title": "Rower D (nowy)", "price": 2200}
+        self.db.sync_watched_offers(w_id, [offer_a, offer_d])
+
+        # 3. Sprawdzenie aktywnej listy monitorowania:
+        res_after = self.db.get_offers_for_watched_search(w_id)
+        self.assertEqual(res_after["total"], 2)
+        urls_active = [o["url"] for o in res_after["items"]]
+        self.assertIn("https://olx.pl/a", urls_active)
+        self.assertIn("https://olx.pl/d", urls_active)
+        self.assertNotIn("https://olx.pl/b", urls_active)
+        self.assertNotIn("https://allegro.pl/c", urls_active)
+
+        # 4. Sprawdzenie bazy:
+        # Oferta B (niepolubiona) została skasowana z bazy
+        db_b = self.db.get_offers(query="Rower B")
+        self.assertEqual(db_b["total"], 0)
+
+        # Oferta C (polubiona) nadal istnieje w Ulubionych użytkownika!
+        bm_res = self.db.get_offers(only_bookmarked=True)
+        self.assertEqual(bm_res["total"], 1)
+        self.assertEqual(bm_res["items"][0]["url"], "https://allegro.pl/c")
+
+        self.db.delete_watched_search(w_id)
+
 if __name__ == "__main__":
     unittest.main()
